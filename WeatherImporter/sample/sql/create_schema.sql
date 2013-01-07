@@ -1,0 +1,124 @@
+--create new app user
+GRANT ALL PRIVILEGES ON *.* TO hffapp@localhost
+IDENTIFIED BY 'hffapp' WITH GRANT OPTION;
+
+--drop procedures
+DROP PROCEDURE IF EXISTS HFF_AREA_RETRIEVE_PROC;
+
+--drop tables
+DROP TABLE IF EXISTS HFF_WEATHER_FORECAST_DETAIL;
+DROP TABLE IF EXISTS HFF_WEATHER_FORECAST_HEAD;
+DROP TABLE IF EXISTS HFF_WEATHER_AREA;
+
+--create tables
+CREATE TABLE HFF_WEATHER_AREA
+(
+  AREA                 VARCHAR(50),
+  DESCRIPTION          VARCHAR(100),
+  TYPE                 VARCHAR(100),
+  PARENT_AREA          VARCHAR(50),
+  LAST_MODIFIED_USER   VARCHAR(100), 
+  LAST_UPDATE_DATETIME TIMESTAMP 
+);
+ALTER TABLE HFF_WEATHER_AREA 
+  ADD (CONSTRAINT HFF_WA_PK PRIMARY KEY (AREA));
+
+ALTER TABLE HFF_WEATHER_AREA 
+  ADD (CONSTRAINT HFF_WA_WA_FK1 FOREIGN KEY (PARENT_AREA) REFERENCES HFF_WEATHER_AREA (AREA));
+
+CREATE TABLE HFF_WEATHER_FORECAST_HEAD
+(
+  START_TIME_LOCAL     TIMESTAMP,
+  END_TIME_LOCAL       TIMESTAMP,
+  TIME_ZONE            VARCHAR(50),
+  AREA                 VARCHAR(50),
+  LAST_MODIFIED_USER   VARCHAR(100), 
+  LAST_UPDATE_DATETIME TIMESTAMP 
+);
+ALTER TABLE HFF_WEATHER_FORECAST_HEAD 
+  ADD (CONSTRAINT HFF_WFH_PK PRIMARY KEY (START_TIME_LOCAL,END_TIME_LOCAL,TIME_ZONE,AREA));
+
+ALTER TABLE HFF_WEATHER_FORECAST_HEAD 
+  ADD (CONSTRAINT HFF_WFH_WA_FK1 FOREIGN KEY (AREA) REFERENCES HFF_WEATHER_AREA (AREA));
+
+CREATE TABLE HFF_WEATHER_FORECAST_DETAIL
+(
+  ELEMENT_NAME             VARCHAR(100),
+  ELEMENT_UNIT             VARCHAR(50),
+  ELEMENT_VALUE            VARCHAR(500),
+  START_TIME_LOCAL         TIMESTAMP,
+  END_TIME_LOCAL           TIMESTAMP,
+  TIME_ZONE                VARCHAR(50),
+  AREA                     VARCHAR(50),
+  LAST_MODIFIED_USER       VARCHAR(100), 
+  LAST_UPDATE_DATETIME     TIMESTAMP 
+);
+
+ALTER TABLE HFF_WEATHER_FORECAST_DETAIL
+  ADD (CONSTRAINT HFF_WFD_PK PRIMARY KEY (
+    ELEMENT_NAME, 
+  	ELEMENT_VALUE,
+    START_TIME_LOCAL,
+    END_TIME_LOCAL,
+    TIME_ZONE,
+    AREA));
+  
+  
+ALTER TABLE HFF_WEATHER_FORECAST_DETAIL 
+  ADD (CONSTRAINT HFF_WFD_WFH_FK1 FOREIGN KEY (START_TIME_LOCAL,END_TIME_LOCAL,TIME_ZONE,AREA)
+  REFERENCES HFF_WEATHER_FORECAST_HEAD (START_TIME_LOCAL,END_TIME_LOCAL,TIME_ZONE,AREA));
+
+CREATE TABLE HFF_WEATHER_IMPORT_CATALOG
+(
+  PRODUCT_ID             VARCHAR(50),
+  DESCRIPTION            VARCHAR(500)
+);
+
+ALTER TABLE HFF_WEATHER_IMPORT_CATALOG
+  ADD (CONSTRAINT HFF_WIC_PK PRIMARY KEY (PRODUCT_ID));
+  
+INSERT INTO HFF_WEATHER_IMPORT_CATALOG VALUES ('IDV10701','Geelong Forecast');
+
+CREATE TABLE HFF_WEATHER_IMPORT_STG
+(
+  PRODUCT_ID             VARCHAR(50),
+  DOCUMENT               MEDIUMTEXT,
+  CREATE_DATE            TIMESTAMP,
+  PROCESSED_DATETIME     TIMESTAMP
+);
+
+ALTER TABLE HFF_WEATHER_IMPORT_STG
+  ADD (CONSTRAINT HFF_WIS_WIC_FK1 FOREIGN KEY (PRODUCT_ID) REFERENCES HFF_WEATHER_IMPORT_CATALOG (PRODUCT_ID));
+
+--create procedures
+DROP PROCEDURE IF EXISTS hff.hff_get_weather_area_proc;
+CREATE PROCEDURE hff.`hff_get_weather_area_proc`(IN I_area_code VARCHAR(50))
+COMMENT 'Procedure to return area to Java'
+BEGIN
+  SELECT * 
+  FROM hff_weather_area where area=IFNULL(i_area_code,area);
+END;
+
+DROP PROCEDURE IF EXISTS hff.`hff_get_weather_forecast_proc`;
+CREATE PROCEDURE hff.`hff_get_weather_forecast_proc`(IN I_area_code VARCHAR(50), IN I_date VARCHAR(50))
+    COMMENT 'Procedure to return forecast to Java'
+BEGIN
+  SELECT 
+     wet_det.start_time_local,
+     wet_det.end_time_local,
+     wet_det.time_zone,
+     wet_det.area,
+     wet_det.element_name,
+     wet_det.element_unit,
+     wet_det.element_value
+  FROM (
+    SELECT h.start_time_local,h.end_time_local,h.time_zone,h.area,d.element_name,d.element_unit,d.element_value
+    FROM hff_weather_forecast_head h, hff_weather_forecast_detail d
+    WHERE h.area = d.area
+    AND h.start_time_local=d.start_time_local
+    AND h.end_time_local=d.end_time_local
+    AND h.time_zone=d.time_zone
+    AND h.area=I_area_code
+    AND DATE_FORMAT(h.start_time_local, '%Y-%m-%d')=STR_TO_DATE(I_date, '%d-%m-%Y' ) ) wet_det
+  GROUP BY wet_det.start_time_local,wet_det.end_time_local,wet_det.area;
+END;

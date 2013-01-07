@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<!-- ===================================================================== -->
+<!--                                                                       -->
+<!--  Log4j Configuration File                                             -->
+<!--                                                                       -->
+<!--  For more configuration infromation and examples see the Jakarta      -->
+<!--  Log4j website: http://jakarta.apache.org/log4j                       -->
+<!--                                                                       -->
+<!-- ===================================================================== -->
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/" debug="false">
+
+  <!-- ============================== -->
+  <!-- Appender setup -->
+  <!-- ============================== -->
+
+  
+ <!-- customized on-site for Mymerch -->
+  <appender name="WeatherImporterErrorLog" class="org.apache.log4j.RollingFileAppender">
+    <param name="File" value="${APP_SERVER_LOG_ROOT}/weatherImporter-error.log"/>
+    <param name="MaxFileSize" value="5MB"/>
+    <param name="MaxBackupIndex" value="5"/>
+    <layout class="org.apache.log4j.PatternLayout">
+      <!-- Layout: Date Priority "thread" RemoteAddr UserID [category] Message\n -->
+      <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p &quot;%t&quot; [%c{3}] %m%n"/>
+    </layout>
+    <filter class="org.apache.log4j.varia.LevelRangeFilter">
+      <param name="levelMin" value="ERROR" />
+    </filter>
+  </appender>
+  
+  <!-- customized on-site for Mymerch -->
+  <appender name="WeatherImporterDebugLog" class="org.apache.log4j.RollingFileAppender">
+    <param name="File" value="${APP_SERVER_LOG_ROOT}/weatherImporter-debug.log"/>
+    <param name="MaxFileSize" value="5MB"/>
+    <param name="MaxBackupIndex" value="5"/>
+    <layout class="org.apache.log4j.PatternLayout">
+      <!-- Layout: Date Priority "thread" RemoteAddr UserID [category] Message\n -->
+      <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p &quot;%t&quot; [%c{3}] %m%n"/>
+    </layout>
+    <filter class="org.apache.log4j.varia.LevelRangeFilter">
+      <param name="levelMin" value="TRACE" />
+      <param name="levelMax" value="WARN" />
+    </filter>
+  </appender>
+  
+  <!-- Log each DB request (INFO level ONLY) -->
+  <appender name="WeatherImporterLogDB" class="org.apache.log4j.RollingFileAppender">
+    <param name="File" value="${APP_SERVER_LOG_ROOT}/weatherImporter-db.csv"/>
+    <param name="MaxFileSize" value="5MB"/>
+    <param name="MaxBackupIndex" value="5"/>
+    <layout class="org.apache.log4j.PatternLayout">
+     	<!-- Layout: Date,Time,Priority,RemoteAddr,UserID,Message\n -->
+       	<param name="ConversionPattern" value="%d{yyyy-MM-dd,HH:mm:ss.SSS},%m%n"/>
+    </layout>
+    <filter class="org.apache.log4j.varia.LevelRangeFilter">
+      <param name="levelMin" value="INFO" />
+      <param name="levelMax" value="INFO" />
+    </filter>
+  </appender>
+  
+  <!-- Log each DB request (INFO level ONLY) -->
+  <appender name="WeatherImporterLogBulkInsertDB" class="org.apache.log4j.RollingFileAppender">
+    <param name="File" value="${APP_SERVER_LOG_ROOT}/weatherImporter-bulk-db.csv"/>
+    <param name="MaxFileSize" value="5MB"/>
+    <param name="MaxBackupIndex" value="5"/>
+    <layout class="org.apache.log4j.PatternLayout">
+     	<!-- Layout: Date,Time,Priority,RemoteAddr,UserID,Message\n -->
+       	<param name="ConversionPattern" value="%d{yyyy-MM-dd,HH:mm:ss.SSS},%m%n"/>
+    </layout>
+    <filter class="org.apache.log4j.varia.LevelRangeFilter">
+      <param name="levelMin" value="INFO" />
+      <param name="levelMax" value="INFO" />
+    </filter>
+  </appender>  
+  
+  <!-- Log each DB request (INFO level ONLY) -->
+  <appender name="WeatherImporterLogBatch" class="org.apache.log4j.RollingFileAppender">
+    <param name="File" value="${APP_SERVER_LOG_ROOT}/weatherImporter-batch.csv"/>
+    <param name="MaxFileSize" value="5MB"/>
+    <param name="MaxBackupIndex" value="5"/>
+    <layout class="org.apache.log4j.PatternLayout">
+     	<!-- Layout: Date,Time,Priority,RemoteAddr,UserID,Message\n -->
+       	<param name="ConversionPattern" value="%d{yyyy-MM-dd,HH:mm:ss.SSS},%m%n"/>
+    </layout>
+    <filter class="org.apache.log4j.varia.LevelRangeFilter">
+      <param name="levelMin" value="INFO" />
+      <param name="levelMax" value="INFO" />
+    </filter>
+  </appender>   
+  
+  <!-- ======================= -->
+  <!-- Setup the loggers       -->
+  <!-- ======================= -->
+  
+  <!-- Used to capture timings of the database calls -->
+  <logger name="au.com.hff.dao.AbstractDao" additivity="false">
+    <appender-ref ref="WeatherImporterLogDB" />
+    <appender-ref ref="WeatherImporterErrorLog"/>
+  </logger>
+  
+  <!-- Used to capture timings of the bulk insert database calls  -->
+  <logger name="au.com.hff.dao.bulkInsert.AbstractBulkInsertDao" additivity="false">
+    <appender-ref ref="WeatherImporterLogBulkInsertDB" />
+    <appender-ref ref="WeatherImporterErrorLog"/>
+  </logger>  
+  
+  <!-- Used to capture timings of the batch jobs -->
+  <logger name="au.com.hff.batch.AbstractBatchJob" additivity="false">
+  <appender-ref ref="WeatherImporterLogBatch" />
+    <appender-ref ref="WeatherImporterErrorLog"/>
+  </logger>
+  
+  <!-- ==============================	-->
+  <!-- Setup the default logger 		-->
+  <!-- For debug logging:				-->
+  <!-- 	Set priority to DEBUG, 			-->
+  <!-- 	and uncomment the WeatherImporterDebugLog -->
+  <!-- ============================== 	-->
+  <root>
+    <priority value="INFO" />
+    <appender-ref ref="WeatherImporterErrorLog"/>
+    <!-- <appender-ref ref="WeatherImporterDebugLog"/> -->
+  </root>
+</log4j:configuration>
+

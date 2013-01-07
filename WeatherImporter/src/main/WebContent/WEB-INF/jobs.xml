@@ -1,0 +1,66 @@
+<?xml  version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:lang="http://www.springframework.org/schema/lang"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" 
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee.xsd
+		http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+		http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+	
+	<context:annotation-config />
+
+	<bean id="abstractBatchJob" abstract="true"/>
+	
+	<!-- Weather Stage Batch -->
+	<bean id="weatherStageBatch" class="au.com.hff.batch.WeatherStageBatchImpl" parent="abstractBatchJob"/>
+	<bean id="weatherStageBatchBean"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="weatherStageBatch" />
+		<property name="targetMethod" value="execute" />
+	</bean>	
+	<bean id="weatherStageBatchTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="weatherStageBatchBean" />
+		<property name="cronExpression" value="00 06 * * * ?" />
+	</bean>	
+	
+	<!-- Weather Import Batch -->
+	<bean id="weatherImportBatch" class="au.com.hff.batch.WeatherImportBatchImpl" parent="abstractBatchJob"/>
+	<bean id="weatherImportBatchBean"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="weatherImportBatch" />
+		<property name="targetMethod" value="execute" />
+	</bean>		
+	<bean id="weatherImportBatchTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="weatherImportBatchBean" />
+		<property name="cronExpression" value="00 07 * * * ?" />
+	</bean>	
+		
+	<!-- Job scheduler -->
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="jobDetails">
+			<list>
+				<ref bean="weatherStageBatchBean" />
+				<ref bean="weatherImportBatchBean" />
+			</list>
+		</property>
+		<property name="triggers">
+			<list>
+				<ref bean="weatherStageBatchTrigger" />
+				<ref bean="weatherImportBatchTrigger" />
+			</list>
+		</property>	
+	</bean>
+		
+</beans>
